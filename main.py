@@ -6,7 +6,7 @@ logged_in = False
 admin = False
 
 #connecting to the database
-db = sqlite3.connect("test.db")
+db = sqlite3.connect("L4HDPGF2-E1.db")
 db.row_factory = sqlite3.Row
 query = db.cursor()
 
