@@ -17,8 +17,8 @@ def sign_up():
     passwd_hash = hash(password)
 
     sql = f"""
-            INSERT INTO accounts(email_address, password_hash, social_credit)
-            VALUES("{email_addr}", "{passwd_hash}", 1000);
+            INSERT INTO accounts(email_address, password_hash, social_credit, administrator, days_since_login)
+            VALUES("{email_addr}", "{passwd_hash}", 1000, 0, 0);
             """
 
     query.execute(sql)
@@ -81,10 +81,10 @@ def log_in():
     if passwd_hash == resulst[1]:
         print("\nLogin successful!")
     
+    current_UUID = resulst[0]
+    
     if resulst[2] == 1:
         return(True)
-    
-    current_UUID = resulst[0]
 
 #hash the inputted message
 def hash(message_in):
@@ -92,21 +92,45 @@ def hash(message_in):
     m.update(message_in.encode())
     return(m.hexdigest())
 
-def modify_admin():
-    add_or_remove = input("Enter 1 for add and 0 for remove to return press enter: ")
-    user_email_addr = input("Input the users email address: ")
+def get_admin():
     
-    if add_or_remove != 1 or 0:
-        pass
+    username = input("\nEnter the users username: ")
 
     sql = f"""
-            INSERT INTO accounts(administrator)
-            VALUES("{add_or_remove}")
-            WHERE email_address = {user_email_addr};
-            """
+        SELECT accounts.administrator
+        FROM accounts, profiles
+        WHERE profiles.username = "{username}"
+        AND accounts.UUID = profiles.UUID;
+    """
+    
+    for row in query.execute(sql):
+        if row['administrator'] == 1:
+            print(f"\n{username} is an administrator.")
+        else:
+            print(f"\n{username} is not an adminstrator.")
+
+def modify_admin():
+    add_or_remove = int(input("\nEnter 1 for add and 0 for remove to return press enter: "))
+        
+    if add_or_remove != 1 and add_or_remove != 0:
+        print("\nThat is not an option!")
+        pass
+
+    username = input("Input the users username: ")
+
+    sql = f"""
+        UPDATE accounts
+        SET administrator = {add_or_remove}
+        FROM profiles
+        WHERE profiles.username = "{username}"
+        AND accounts.UUID = profiles.UUID;
+        """
 
     query.execute(sql)
     db.commit()
+
+    #I am going insane this is starting to look like valve dev comments
+    print("\nBye bye administrator!!!")
 
 def change_class():
     yet_to_choose = True
@@ -180,5 +204,32 @@ def change_class():
     
     print("\nClass changed successfuly!")
 
+def get_class():
+    class_name = ""
+    
+    sql = f"""
+        SELECT classes.class_name
+        FROM profiles, classes
+        WHERE UUID = "{current_UUID}"
+        AND profiles.class_ID = classes.class_ID;
+        """
+    
+    for row in query.execute(sql):
+        class_name = row['class_name']
+    
+    print(f"\nYour current selected class is '{class_name}'")
+
 def get_user():
     return(current_UUID)
+
+#removes every player who hasn't logged in for 365 days because people don't deserve the right to keep the things they bought with their hard earned money
+def ubisoft():
+    sql = f"""
+        DELETE FROM accounts
+        WHERE days_since_login >= 365;
+        """
+    
+    query.execute(sql)
+    db.commit()
+    
+    print("\nAhh yes I love taking away peoples rights!")
